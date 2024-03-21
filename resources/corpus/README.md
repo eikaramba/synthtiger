@@ -1,0 +1,1 @@
+Change config in /home/felix/Desktop/synthtiger/examples/synthtiger/config_vertical.yaml

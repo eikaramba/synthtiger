@@ -1,3 +1,20 @@
+
+
+# Dirty modified fork of SynthTIGER for doctr
+
+Usage:
+
+```bash
+synthtiger -o results -w 4 -v examples/synthtiger/template.py SynthTiger examples/synthtiger/config_horizontal.yaml
+```
+
+results folder contains:
+images folder with images
+gt.txt with labels
+and labels.json (doctr format)
+
+modify the .txt files in examples/synthtiger/config_horizontal.yaml to match your vocabulary (the current one is used for multilingual)
+
 <div align="center">
 
 # SynthTIGER 🐯 : Synthetic Text Image Generator
