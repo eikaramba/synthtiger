@@ -6,6 +6,7 @@ MIT license
 
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
+import random
 
 from synthtiger import utils
 from synthtiger.layers.layer import Layer
@@ -158,7 +159,7 @@ class TextLayer(Layer):
         draw.text(
             (0, 0),
             text,
-            fill=color,
+            fill=random.choice([color, "black"]),
             font=font,
             stroke_width=stroke_width,
             direction=direction,

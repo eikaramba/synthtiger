@@ -1,28 +1,41 @@
 count: 100
 
 corpus:
-  paths: [resources/corpus/mjsynth.txt]
-  weights: [1]
-  min_length: 1
-  max_length: 25
-  textcase: [lower, upper, capitalize]
-
+  weights: [1, 0]
+  args:
+    # length augmentable corpus
+    - paths: [resources/corpus/german.txt, resources/corpus/synthtext.txt,]
+      weights: [1, 1]
+      min_length: 1
+      max_length: 30
+      textcase: [lower, upper, capitalize]
+      augmentation: 0.9
+      augmentation_length: [1, 25]
+    # char augmentable corpus
+    - paths: []
+      weights: []
+      min_length: 1
+      max_length: 30
+      textcase: [lower, upper, capitalize]
+      augmentation: 0
+      augmentation_charset: resources/charset/alphanum_special.txt
+# TODO: ADD more fonts
 font:
   paths: [resources/font]
   weights: [1]
-  size: [32, 64]
-  bold: 0.5
+  size: [12, 64]
+  bold: 0.2
 
 color:
-  rgb: [[0, 0], [0, 0], [0, 0]]
+  rgb: [[0, 0], [0, 0], [0, 0]]  ## generate also some with [[0, 255], [0, 255], [0, 255]]
   alpha: [1, 1]
   grayscale: 0
 
 layout:
-  length: [1024, 1024]
-  space: [16, 32]
+  length: [1061, 1324]
+  space: [10, 22, 32]
   line_space: [0, 16]
-  align: [left, center, right, justify]
+  align: [justify]
   line_align: [middle]
   ltr: true
   ttb: true

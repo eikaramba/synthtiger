@@ -5,6 +5,8 @@ MIT license
 """
 
 import os
+import json
+import string
 
 import cv2
 import numpy as np
@@ -26,6 +28,8 @@ BLEND_MODES = [
     "darken_only",
     "lighten_only",
 ]
+
+Labels = {}
 
 
 class SynthTiger(templates.Template):
@@ -52,6 +56,9 @@ class SynthTiger(templates.Template):
             ],
             **config.get("corpus", {}),
         )
+        # TODO_ Blööb
+        self.augment_vocab = open(config["corpus"]["args"][1]["augmentation_charset"], "r", encoding="utf-8").read().splitlines()[0]
+        # TODO: blööb
         self.font = components.BaseFont(**config.get("font", {}))
         self.texture = components.Switch(
             components.BaseTexture(), **config.get("texture", {})
@@ -109,6 +116,14 @@ class SynthTiger(templates.Template):
         quality = np.random.randint(self.quality[0], self.quality[1] + 1)
         midground = np.random.rand() < self.midground
         fg_color, fg_style, mg_color, mg_style, bg_color = self._generate_color()
+
+        dummy_black_color = {'gray': 0, 'rgb': (0, 0, 0), 'alpha': 1.0, 'colorize': False}
+        dummy_white_color = {'gray': 255, 'rgb': (255, 255, 255), 'alpha': 1.0, 'colorize': False}
+        fg_color = np.random.choice([fg_color, dummy_black_color])
+        mg_color = np.random.choice([mg_color, dummy_white_color])
+        bg_color = np.random.choice([bg_color, dummy_white_color])
+        if mg_color == dummy_white_color:
+            bg_color = dummy_white_color
 
         fg_image, label, bboxes, glyph_fg_image, glyph_bboxes = self._generate_text(
             fg_color, fg_style
@@ -170,28 +185,30 @@ class SynthTiger(templates.Template):
             [",".join(map(str, map(int, coord))) for coord in glyph_coords]
         )
 
-        shard = str(idx // 10000)
-        image_key = os.path.join("images", shard, f"{idx}.jpg")
-        mask_key = os.path.join("masks", shard, f"{idx}.png")
-        glyph_mask_key = os.path.join("glyph_masks", shard, f"{idx}.png")
+        #shard = str(idx // 10000)
+        image_key = os.path.join("images", f"{idx}.jpg")
+        mask_key = os.path.join("masks", f"{idx}.png")
+        glyph_mask_key = os.path.join("glyph_masks", f"{idx}.png")
         image_path = os.path.join(root, image_key)
         mask_path = os.path.join(root, mask_key)
         glyph_mask_path = os.path.join(root, glyph_mask_key)
 
         os.makedirs(os.path.dirname(image_path), exist_ok=True)
-        image.save(image_path, quality=quality)
-        if self.mask_output:
-            os.makedirs(os.path.dirname(mask_path), exist_ok=True)
-            mask.save(mask_path)
-        if self.glyph_mask_output:
-            os.makedirs(os.path.dirname(glyph_mask_path), exist_ok=True)
-            glyph_mask.save(glyph_mask_path)
+        if image.size[0] > 8 and image.size[1] > 8:
+            image.save(image_path, quality=quality)
+            if self.mask_output:
+                os.makedirs(os.path.dirname(mask_path), exist_ok=True)
+                mask.save(mask_path)
+            if self.glyph_mask_output:
+                os.makedirs(os.path.dirname(glyph_mask_path), exist_ok=True)
+                glyph_mask.save(glyph_mask_path)
 
-        self.gt_file.write(f"{image_key}\t{label}\n")
-        if self.coord_output:
-            self.coords_file.write(f"{image_key}\t{coords}\n")
-        if self.glyph_coord_output:
-            self.glyph_coords_file.write(f"{image_key}\t{glyph_coords}\n")
+            self.gt_file.write(f"{image_key}\t{label}\n")
+            Labels[f"{idx}.jpg"] = label
+            if self.coord_output:
+                self.coords_file.write(f"{image_key}\t{coords}\n")
+            if self.glyph_coord_output:
+                self.glyph_coords_file.write(f"{image_key}\t{glyph_coords}\n")
 
     def end_save(self, root):
         self.gt_file.close()
@@ -199,6 +216,8 @@ class SynthTiger(templates.Template):
             self.coords_file.close()
         if self.glyph_coord_output:
             self.glyph_coords_file.close()
+        with open('results/labels.json', 'w', encoding="utf-8") as f:
+            json.dump(Labels, f, ensure_ascii=False)
 
     def _generate_color(self):
         mg_color = self.color.sample()
@@ -215,6 +234,18 @@ class SynthTiger(templates.Template):
 
     def _generate_text(self, color, style):
         label = self.corpus.data(self.corpus.sample())
+        label_length = len(label)
+        max_length = 25 - label_length
+        vocab = self.augment_vocab
+        if label_length < 25 and np.random.choice([True, True, True, False]):
+            for _ in range(np.random.randint(1, max_length)):
+                label += np.random.choice(list(vocab))
+        # check that all chars from label are in vocab
+        if not all(c in vocab + string.ascii_letters for c in label):
+            raise RuntimeError("Not all chars from label are in vocab")
+        if len(label) > 25:
+            raise RuntimeError("Label is too long")
+
 
         # for script using diacritic, ligature and RTL
         chars = utils.split_text(label, reorder=True)
