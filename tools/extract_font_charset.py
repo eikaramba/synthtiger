@@ -115,6 +115,8 @@ def run(args):
         future = executor.submit(get_charset, path)
         futures[future] = path
 
+    print(f"Extracting font charsets ({len(paths)} files) ...")
+
     for future in as_completed(futures):
         path = futures[future]
 
